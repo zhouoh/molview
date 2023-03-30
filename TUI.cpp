@@ -1,0 +1,475 @@
+#include <curses.h>
+#include <stdlib.h>
+#include <vector>
+#include <iostream>
+#include <string.h>
+#include <fstream>
+#include <sstream>
+#include <math.h>
+#include "render.h"
+#include "readGout.h"
+#include <menu.h>
+// Read the xyz file and store it in a vector
+std::vector<std::string> readXYZFile(std::string filename)
+{
+    std::vector<std::string> xyzline;
+    std::string line;
+    std::ifstream xyzFile;
+    xyzFile.open(filename.c_str(), std::ios::in);
+    int i = 0;
+    if (xyzFile.is_open())
+    {
+        while (getline(xyzFile, line))
+        {
+            i++;
+            if (i == 1 || i == 2 || line.empty())
+            {
+                continue;
+            }
+            xyzline.push_back(line);
+            
+        }
+        xyzFile.close();
+    }
+    else
+    {
+        std::cout << "Unable to open file";
+    }
+    return xyzline;
+}
+
+// Get the number of atoms in the xyz file
+int getNumAtoms(std::string filename)
+{
+    std::string line;
+    std::ifstream xyzFile;
+    xyzFile.open(filename.c_str(), std::ios::in);
+    int i = 0;
+    int numAtoms = 0;
+    getline(xyzFile, line);
+    std::cout << line << std::endl;
+    numAtoms = std::stoi(line);
+
+    return numAtoms;
+}
+
+// Get the element name
+std::vector<std::string> getElementName(std::vector<std::string> line)
+{
+    std::vector<std::string> elementName;
+    int i = 0;
+    for (i = 0; i < line.size(); i++)
+    {
+        std::string temp = line[i];
+        std::string delimiter = "  ";
+        std::string token = temp.substr(0, temp.find(delimiter));
+        //std::cout << temp << std::endl;
+        //std::cout << temp.find(delimiter) << std::endl;
+        elementName.push_back(token);
+    }
+    return elementName;
+
+}
+
+// Get the coordinates
+std::vector<std::vector<double>> getCoordinates(std::vector<std::string> line)
+{
+    // extract the coordinates from the line
+    // eg. C 0.000000 0.000000 0.000000
+    std::vector<std::vector<double>> coordinates;
+    for (int i = 0; i < line.size(); i++)
+    {
+        double x, y, z;
+        std::stringstream ss(line[i]);
+        std::string symbol;
+        ss >> symbol >> x >> y >> z;
+        std::vector<double> temp;
+        temp.push_back(x);
+        temp.push_back(y);
+        temp.push_back(z);
+        coordinates.push_back(temp);
+
+    }
+    return coordinates;
+}
+
+
+
+int main()
+{
+    double scale_ratio = 0.6;
+    int x_offset = 0;
+    int y_offset = 0;
+    #ifdef XYZ
+    std::vector<std::string> xyzFile = readXYZFile("CH4.xyz");
+
+    int numAtoms = getNumAtoms("CH4.xyz");
+
+    std::vector<std::string> elementName = getElementName(xyzFile);
+
+    std::vector<std::vector<double>> coordinates = getCoordinates(xyzFile);
+
+    std::vector<std::vector<int>> bondConnectivity = getBondConnectivity(coordinates);
+
+    std::vector<std::vector<char>> renderResult = render(elementName, coordinates, bondConnectivity, 100, 100,scale_ratio,x_offset,y_offset);
+   
+    initscr();
+    noecho();
+    int x, y;
+    x = LINES;
+    y = COLS;
+    renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+    printCanvas(renderResult);
+    refresh();
+    while (int key = getch())
+    {
+        if (key == 'q')
+        {
+            endwin();
+            return 0;
+        }
+        else if (key == 'w')
+        {
+            coordinates = rotate(coordinates, 0, 2.0*3.1415/180);
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            refresh();
+        }
+        else if (key == 's')
+        {
+            coordinates = rotate(coordinates, 0, -2.0*3.1415/180);
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            refresh();
+        }
+        else if (key == 'a')
+        {
+            coordinates = rotate(coordinates, 2.0*3.1415/180, 0);
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            refresh();
+        }
+        else if (key == 'd')
+        {
+            coordinates = rotate(coordinates, -2.0*3.1415/180, 0);
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            refresh();
+        }
+        else if (key == 'z')
+        {
+            scale_ratio += 0.05;
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            refresh();
+        }
+        else if (key == 'x')
+        {
+            scale_ratio -= 0.05;
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            refresh();
+        }
+        else if (key == 'i')
+        {
+            y_offset -= 1;
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            refresh();
+        }
+        else if (key == 'k')
+        {
+            y_offset += 1;
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            refresh();
+        }
+        else if (key == 'j')
+        {
+            x_offset -= 1;
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            refresh();
+
+        }
+        else if (key == 'l')
+        {
+            x_offset += 1;
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            refresh();
+        }
+        else if (key == 'r')
+        {
+            scale_ratio = 0.6;
+            x_offset = 0;
+            y_offset = 0;
+            //clear();
+            coordinates = getCoordinates(xyzFile);
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            refresh();
+        }
+
+    }
+    #endif
+
+    #ifdef GOUT
+    std::string filename = "TS4.out";
+    std::vector<std::vector<std::vector<double>>> frames = readGoutFile(filename);
+    int nFrames = frames.size();
+    int currentFrame = 0;
+    std::vector<std::vector<double>> coordinates = frames[0];
+    std::vector<std::vector<int>> bondConnectivity = getBondConnectivity(coordinates);
+    std::vector<std::string> elementName = getElementName_GOUT(filename);
+    bool ifOPT = false;
+    std::vector<std::vector<double>> optCriteria;
+    try{
+        optCriteria = getOptCriteria(filename);
+        ifOPT = true;
+    } catch (const std::exception& e) {
+        ifOPT = false;
+    }
+    std::vector<std::vector<char>> renderResult = render(elementName, coordinates, bondConnectivity, 100, 100, scale_ratio, x_offset, y_offset);
+    initscr();
+    noecho();
+    keypad(stdscr, TRUE);
+    int x, y;
+    x = LINES;
+    y = COLS;
+    renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+    printCanvas(renderResult);
+    mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+    mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+    if (ifOPT)
+    {
+        mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+    }
+
+    refresh();
+    while (int key = getch())
+    {
+        if (key == 'q')
+        {
+            endwin();
+            return 0;
+        }
+        else if (key == 'w')
+        {
+            coordinates = rotate(coordinates, 0, 2.0*3.1415/180);
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+            mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+            if (ifOPT)
+            {
+                mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+            }
+            refresh();
+        }
+        else if (key == 's')
+        {
+            coordinates = rotate(coordinates, 0, -2.0*3.1415/180);
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+            mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+            if (ifOPT)
+            {
+                mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+            }
+            refresh();
+        }
+        else if (key == 'a')
+        {
+            coordinates = rotate(coordinates, 2.0*3.1415/180, 0);
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+            mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+            if (ifOPT)
+            {
+                mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+            }
+            refresh();
+        }
+        else if (key == 'd')
+        {
+            coordinates = rotate(coordinates, -2.0*3.1415/180, 0);
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+            mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+            if (ifOPT)
+            {
+                mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+            }
+            refresh();
+        }
+        else if (key == 'z')
+        {
+            scale_ratio += 0.05;
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+            mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+            if (ifOPT)
+            {
+                mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+            }
+            refresh();
+        }
+        else if (key == 'x')
+        {
+            scale_ratio -= 0.05;
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+            mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+            if (ifOPT)
+            {
+                mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+            }
+            refresh();
+        }
+        else if (key == 'i')
+        {
+            y_offset -= 1;
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+            mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+            if (ifOPT)
+            {
+                mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+            }
+            refresh();
+        }
+        else if (key == 'k')
+        {
+            y_offset += 1;
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+            mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+            if (ifOPT)
+            {
+                mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+            }
+            refresh();
+        }
+        else if (key == 'j')
+        {
+            x_offset -= 1;
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+            mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+            if (ifOPT)
+            {
+                mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+            }
+            refresh();
+
+        }
+        else if (key == 'l')
+        {
+            x_offset += 1;
+            //clear();
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+            mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+            if (ifOPT)
+            {
+                mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+            }
+            refresh();
+        }
+        else if (key == KEY_LEFT)
+        {
+            if (currentFrame == 0)
+            {
+                currentFrame = nFrames - 1;
+            }
+            else
+            {
+                currentFrame -= 1;
+            }
+            coordinates = frames[currentFrame];
+            bondConnectivity = getBondConnectivity(coordinates);
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+            mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+            if (ifOPT)
+            {
+                mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+            }
+            refresh();
+        }
+        else if (key == KEY_RIGHT)
+        {
+            if (currentFrame == nFrames - 1)
+            {
+                currentFrame = 0;
+            }
+            else
+            {
+                currentFrame += 1;
+            }
+            coordinates = frames[currentFrame];
+            bondConnectivity = getBondConnectivity(coordinates);
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+            mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+            if (ifOPT)
+            {
+                mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+            }
+            refresh();
+        }
+        else if (key == 'r')
+        {
+            scale_ratio = 0.6;
+            x_offset = 0;
+            y_offset = 0;
+            //clear();
+            coordinates = frames[0];
+            renderResult = render(elementName, coordinates, bondConnectivity, x, y, scale_ratio, x_offset, y_offset);
+            printCanvas(renderResult);
+            mvprintw(0, 0, "Frame: %d/%d", currentFrame, nFrames);
+            mvprintw(x-1, 0, "Press 'q' to quit, 'r' to reset, 'w' to rotate up, 's' to rotate down, 'a' to rotate left, 'd' to rotate right, 'z' to zoom in, 'x' to zoom out, 'i' to move up, 'k' to move down, 'j' to move left, 'l' to move right, 'n' to go to next frame, 'p' to go to previous frame");
+            if (ifOPT)
+            {
+                mvprintw(x-2, 0, "Optimization criteria: MF %.2f RF %.2f MD %.2f RD %.2f", optCriteria[currentFrame][0], optCriteria[currentFrame][1], optCriteria[currentFrame][2], optCriteria[currentFrame][3]);
+            }
+            refresh();
+        }
+       
+
+    }    
+    #endif
+
+    return 0;
+}
