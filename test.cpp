@@ -42,9 +42,9 @@ int main()
 	update_panels();
 
 	/* Show it on the screen */
-	attron(COLOR_PAIR(4));
+	attron(COLOR_PAIR(1));
 	mvprintw(LINES - 2, 0, "Use tab to browse through the windows (F1 to Exit)");
-	attroff(COLOR_PAIR(4));
+	attroff(COLOR_PAIR(1));
 	doupdate();
 
 	top = my_panels[2];

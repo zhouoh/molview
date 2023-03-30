@@ -1,4 +1,4 @@
 # /usr/bin/bash
 
-g++ -O3 -c TUI.cpp render.cpp readGout.cpp -lcurses -std=c++11 -D GOUT
-g++ -O3 -o TUI TUI.o render.o readGout.o  -lcurses -std=c++11 -D GOUT
+clang++ -Wall -O2 -static -c TUI.cpp render.cpp readGout.cpp -l:libncurses.a -ltinfo -std=c++11 -D GOUT 
+clang++ -static -o molview TUI.o render.o readGout.o  -l:libncurses.a -ltinfo  -std=c++11 -D GOUT 

@@ -98,7 +98,7 @@ std::vector<std::vector<char>> render(std::vector<std::string> elementName, std:
     }
     for (i = 0; i < coordinates.size(); i++)
     {
-        coordinates[i][0] = coordinates[i][0] * scale * scale_ratio + x_offset;
+        coordinates[i][0] = coordinates[i][0] * scale * scale_ratio + x_offset - 20;
         coordinates[i][1] = coordinates[i][1] * scale * scale_ratio + y_offset;
     }
 

@@ -156,6 +156,86 @@ std::vector<std::vector<double>> getOptCriteria(std::string filename)
 }
 
 
+// Get the keyword
+std::string getKeyword(std::string filename)
+{
+    std::string keyword;
+    std::ifstream infile(filename);
+    if (!infile) {
+        std::cout << "Error: Could not open input file" << std::endl;
+    }
+   
+    std::string line;
+    while (getline(infile, line)) {
+
+        if (line.find(" #") != std::string::npos) {
+            keyword = line;
+            keyword = keyword.erase(0,1);
+            break;
+        }
+    } 
+    return keyword;    
+        
+}
+
+
+// Get the charge and multiplicity
+std::vector<std::string> getChargeMult(std::string filename)
+{
+    std::ifstream input_file(filename);
+    std::string line;
+    int charge, multiplicity;
+    std::vector<std::string> chargeMult;
+
+    while (std::getline(input_file, line)) {
+        if (line.find("Charge =") != std::string::npos) {
+            // Extract charge and multiplicity from the line
+            std::stringstream ss(line.substr(line.find("Charge =") + 9));
+            ss >> charge;
+
+            std::stringstream ss2(line.substr(line.find("Multiplicity =") + 15));
+            ss2 >> multiplicity;
+            break;
+
+
+        }
+    }
+
+    input_file.close();   
+    chargeMult.push_back(std::to_string(charge));
+    chargeMult.push_back(std::to_string(multiplicity));
+    return chargeMult;
+
+        
+}
+
+
+
+void writeGJF(std::string filename, std::vector<std::string> elementName, std::vector<std::vector<double>> coordinates, std::string keyword, std::string charge, std::string multiplicity)
+{
+    std::ofstream outfile(filename);
+    if (!outfile) {
+        std::cout << "Error: Could not open output file" << std::endl;
+    }
+    std::string prefix = filename.substr(0, filename.find_last_of("."));
+    outfile << "%chk=" << prefix << ".chk" << std::endl;
+    outfile << "%mem=16GB" << std::endl;
+    outfile << "%nprocshared=12" << std::endl;
+    outfile << keyword << std::endl;
+    outfile << std::endl;
+    outfile << "t" << filename << std::endl;
+    outfile << std::endl;
+    outfile << charge << " " << multiplicity << std::endl;
+    for (int i = 0; i < coordinates.size(); i++)
+    {
+        outfile << elementName[i] << "   " << coordinates[i][0] << " " << coordinates[i][1] << " " << coordinates[i][2] << std::endl;
+    }
+    outfile << std::endl;
+    outfile << std::endl;
+    outfile.close();
+}
+
+
 //int main()
 //{
 //    std::string filename = "TS4.out";
@@ -175,6 +255,13 @@ std::vector<std::vector<double>> getOptCriteria(std::string filename)
 //        }
 //        std::cout << std::endl;
 //    }
+//    std::string keyword = getKeyword(filename);
+//    std::cout << keyword << std::endl;
+//    std::vector<std::string> chargeMult = getChargeMult(filename);
+//    for (std::string c : chargeMult) {
+//        std::cout << c << std::endl;
+//    }
+//    writeGJF("test1.gjf", elementName, frames[0], keyword, chargeMult[0], chargeMult[1]);
 //    return 0;
 //}
 
